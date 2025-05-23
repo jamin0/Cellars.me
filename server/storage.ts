@@ -85,27 +85,22 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Adding wine with data:', wine);
       
-      const wineData = {
-        name: wine.name,
-        category: wine.category,
-        wine: wine.wine,
-        subType: wine.subType,
-        producer: wine.producer,
-        region: wine.region,
-        country: wine.country,
-        stockLevel: wine.stockLevel || 0,
-        vintageStocks: wine.vintageStocks || [],
-        imageUrl: wine.imageUrl,
-        rating: wine.rating,
-        notes: wine.notes,
-        userId
-      };
+      // Use direct SQL to bypass type issues
+      const result = await db.execute(sql`
+        INSERT INTO wines (
+          name, category, wine, sub_type, producer, region, country, 
+          stock_level, vintage_stocks, image_url, rating, notes, user_id
+        ) VALUES (
+          ${wine.name}, ${wine.category}, ${wine.wine || null}, 
+          ${wine.subType || null}, ${wine.producer || null}, 
+          ${wine.region || null}, ${wine.country || null}, 
+          ${wine.stockLevel || 0}, ${JSON.stringify(wine.vintageStocks || [])}, 
+          ${wine.imageUrl || null}, ${wine.rating || null}, 
+          ${wine.notes || null}, ${userId}
+        ) RETURNING *
+      `);
       
-      const [newWine] = await db
-        .insert(wines)
-        .values([wineData])
-        .returning();
-      return newWine;
+      return result.rows[0] as Wine;
     } catch (error) {
       console.error('Error adding wine:', error);
       console.error('Wine data that failed:', wine);
