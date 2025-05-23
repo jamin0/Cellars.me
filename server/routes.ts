@@ -81,6 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newWine = await storage.addWine(parseResult.data, userId);
       res.status(201).json(newWine);
     } catch (err) {
+      console.error("Failed to add wine:", err);
       res.status(500).json({ message: "Failed to add wine" });
     }
   });
