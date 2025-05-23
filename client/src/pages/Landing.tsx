@@ -18,7 +18,8 @@ export default function Landing() {
             </h1>
           </div>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Your personal wine collection manager. Track, organize, and discover your wines with ease.
+            Your personal cellar manager. Track, organize, and discover your
+            bottles with ease.
           </p>
         </div>
 
@@ -30,7 +31,8 @@ export default function Landing() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 dark:text-gray-300">
-                Keep track of your wines with detailed information, ratings, and tasting notes.
+                Keep track of your bottles with detailed information, ratings,
+                and tasting notes.
               </p>
             </CardContent>
           </Card>
@@ -42,7 +44,8 @@ export default function Landing() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 dark:text-gray-300">
-                Your collection is private and secure. Only you can see and manage your wines.
+                Your collection is private and secure. Only you can see and
+                manage your cellar.
               </p>
             </CardContent>
           </Card>
@@ -54,7 +57,7 @@ export default function Landing() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 dark:text-gray-300">
-                Access your collection from anywhere with secure authentication.
+                Access your cellar from anywhere with secure authentication.
               </p>
             </CardContent>
           </Card>
@@ -69,7 +72,7 @@ export default function Landing() {
             Get Started
           </Button>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-            Sign in with your account to begin managing your wine collection
+            Sign in to begin managing your cellar
           </p>
         </div>
       </div>
