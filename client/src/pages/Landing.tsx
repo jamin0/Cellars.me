@@ -12,7 +12,11 @@ export default function Landing() {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
-            <Wine className="h-12 w-12 text-purple-600 mr-3" />
+            <img
+              src={document.documentElement.classList.contains('dark') ? '/cellarsd.jpg' : '/cellars.jpg'}
+              alt="Cellars.me Logo"
+              className="h-12 w-12 mr-3 object-contain"
+            />
             <h1 className="text-5xl font-bold text-gray-900 dark:text-white">
               Cellars.me
             </h1>
