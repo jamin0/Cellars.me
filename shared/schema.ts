@@ -122,6 +122,9 @@ export const wineFormSchema = insertWineSchema.extend({
     WineCategory.FORTIFIED, 
     WineCategory.BEER, 
     WineCategory.CIDER, 
+    WineCategory.WHISKIES,
+    WineCategory.WHISKY,
+    WineCategory.SPIRITS,
     WineCategory.OTHER
   ]),
   stockLevel: z.number().min(0, "Stock cannot be negative"),

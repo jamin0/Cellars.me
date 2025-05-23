@@ -103,7 +103,7 @@ export class DatabaseStorage implements IStorage {
       
       const [newWine] = await db
         .insert(wines)
-        .values(wineData)
+        .values([wineData])
         .returning();
       return newWine;
     } catch (error) {
