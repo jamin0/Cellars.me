@@ -2,29 +2,47 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertWineSchema } from "@shared/schema";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Wine Inventory API Routes
-  // Get all wines
-  app.get("/api/wines", async (req, res) => {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const wines = await storage.getWines();
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Wine Inventory API Routes (now user-specific)
+  // Get all wines for authenticated user
+  app.get("/api/wines", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const wines = await storage.getWines(userId);
       res.json(wines);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch wines" });
     }
   });
 
-  // Get wine by ID
-  app.get("/api/wines/:id", async (req, res) => {
+  // Get wine by ID for authenticated user
+  app.get("/api/wines/:id", isAuthenticated, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid wine ID" });
       }
 
-      const wine = await storage.getWineById(id);
+      const userId = req.user.claims.sub;
+      const wine = await storage.getWineById(id, userId);
       if (!wine) {
         return res.status(404).json({ message: "Wine not found" });
       }
@@ -35,19 +53,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get wines by category
-  app.get("/api/wines/category/:category", async (req, res) => {
+  // Get wines by category for authenticated user
+  app.get("/api/wines/category/:category", isAuthenticated, async (req: any, res) => {
     try {
       const { category } = req.params;
-      const wines = await storage.getWinesByCategory(category);
+      const userId = req.user.claims.sub;
+      const wines = await storage.getWinesByCategory(category, userId);
       res.json(wines);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch wines by category" });
     }
   });
 
-  // Add a new wine
-  app.post("/api/wines", async (req, res) => {
+  // Add a new wine for authenticated user
+  app.post("/api/wines", isAuthenticated, async (req: any, res) => {
     try {
       const parseResult = insertWineSchema.safeParse(req.body);
       
@@ -58,15 +77,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const newWine = await storage.addWine(parseResult.data);
+      const userId = req.user.claims.sub;
+      const newWine = await storage.addWine(parseResult.data, userId);
       res.status(201).json(newWine);
     } catch (err) {
       res.status(500).json({ message: "Failed to add wine" });
     }
   });
 
-  // Update an existing wine
-  app.patch("/api/wines/:id", async (req, res) => {
+  // Update an existing wine for authenticated user
+  app.patch("/api/wines/:id", isAuthenticated, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -84,7 +104,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const updatedWine = await storage.updateWine(id, parseResult.data);
+      const userId = req.user.claims.sub;
+      const updatedWine = await storage.updateWine(id, parseResult.data, userId);
       if (!updatedWine) {
         return res.status(404).json({ message: "Wine not found" });
       }
@@ -96,15 +117,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a wine
-  app.delete("/api/wines/:id", async (req, res) => {
+  // Delete a wine for authenticated user
+  app.delete("/api/wines/:id", isAuthenticated, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid wine ID" });
       }
 
-      const success = await storage.deleteWine(id);
+      const userId = req.user.claims.sub;
+      const success = await storage.deleteWine(id, userId);
       if (!success) {
         return res.status(404).json({ message: "Wine not found" });
       }
