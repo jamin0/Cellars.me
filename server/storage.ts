@@ -102,7 +102,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWine(id: number, userId: string): Promise<boolean> {
     const result = await db.delete(wines).where(and(eq(wines.id, id), eq(wines.userId, userId)));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Wine catalog management (shared across all users)
@@ -142,7 +142,7 @@ export class DatabaseStorage implements IStorage {
       await new Promise<void>((resolve, reject) => {
         createReadStream(filePath)
           .pipe(parse({ 
-            headers: true, 
+            columns: true, 
             skip_empty_lines: true,
             delimiter: ',',
             quote: '"',
