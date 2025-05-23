@@ -50,9 +50,6 @@ export class MemStorage implements IStorage {
     this.wineCurrentId = 1;
     this.catalogCurrentId = 1;
 
-    // Try to load the wine catalog from CSV on initialization
-    this.loadWineCatalogFromCSV(path.join(process.cwd(), 'server/data/winedb2.csv'))
-      .catch(err => console.error('Failed to load wine catalog:', err));
   }
 
   // Wine Inventory Methods
@@ -110,11 +107,6 @@ export class MemStorage implements IStorage {
       const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
-      }
-
-      // Create an empty CSV file if it doesn't exist
-      if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, 'name,category,producer,region,country\n');
       }
 
       const parser = parse({
@@ -178,8 +170,6 @@ export class DatabaseStorage implements IStorage {
 
   // Wine inventory methods - now user-specific
   constructor() {
-    // We no longer automatically load the CSV data on startup
-    // This ensures catalog data remains persistent
   }
 
   // Wine Inventory Methods

@@ -104,7 +104,7 @@ export default function WineDetail() {
       queryClient.invalidateQueries({ queryKey: [`/api/wines/${id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/wines"] });
       toast({
-        title: "Wine Updated",
+        title: "Bottle Updated",
         description: "Your changes have been saved.",
       });
       setIsEditing(false);
@@ -123,8 +123,8 @@ export default function WineDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/wines"] });
       toast({
-        title: "Wine Removed",
-        description: "The wine has been removed from your collection.",
+        title: "Bottle Removed",
+        description: "The bottle has been removed from your collection.",
       });
       navigate("/");
     },
@@ -176,7 +176,7 @@ export default function WineDetail() {
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen bg-background text-foreground pb-20">
-        <Header title="Wine Details" />
+        <Header title="Bottle Details" />
         <main className="flex-1 container px-4 py-6 mx-auto">
           <div className="max-w-2xl mx-auto bg-muted h-96 rounded-lg animate-pulse"></div>
         </main>

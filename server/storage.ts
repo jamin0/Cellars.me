@@ -35,7 +35,6 @@ export interface IStorage {
   // Wine catalog management (from CSV) - shared across all users
   getWineCatalog(): Promise<WineCatalog[]>;
   searchWineCatalog(query: string): Promise<WineCatalog[]>;
-  loadWineCatalogFromCSV(filePath: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -84,55 +83,48 @@ export class DatabaseStorage implements IStorage {
 
   async addWine(wine: InsertWine, userId: string): Promise<Wine> {
     try {
+      console.log('Adding wine with data:', wine);
+      
       const wineData = {
         name: wine.name,
         category: wine.category,
-        wine: wine.wine || null,
-        subType: wine.subType || null,
-        producer: wine.producer || null,
-        region: wine.region || null,
-        country: wine.country || null,
+        wine: wine.wine,
+        subType: wine.subType,
+        producer: wine.producer,
+        region: wine.region,
+        country: wine.country,
         stockLevel: wine.stockLevel || 0,
         vintageStocks: wine.vintageStocks || [],
-        imageUrl: wine.imageUrl || null,
-        rating: wine.rating || null,
-        notes: wine.notes || null,
+        imageUrl: wine.imageUrl,
+        rating: wine.rating,
+        notes: wine.notes,
         userId
       };
       
       const [newWine] = await db
         .insert(wines)
-        .values([wineData])
+        .values(wineData)
         .returning();
       return newWine;
     } catch (error) {
       console.error('Error adding wine:', error);
+      console.error('Wine data that failed:', wine);
       throw error;
     }
   }
 
   async updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined> {
-    const updateData: Record<string, any> = {};
-
-    // Map fields to columns with correct snake_case for DB
-    if (wine.name !== undefined) updateData.name = wine.name;
-    if (wine.category !== undefined) updateData.category = wine.category;
-    if (wine.wine !== undefined) updateData.wine = wine.wine;
-    if (wine.subType !== undefined) updateData.sub_type = wine.subType;
-    if (wine.producer !== undefined) updateData.producer = wine.producer;
-    if (wine.region !== undefined) updateData.region = wine.region;
-    if (wine.country !== undefined) updateData.country = wine.country;
-    if (wine.notes !== undefined) updateData.notes = wine.notes;
-    if (wine.rating !== undefined) updateData.rating = wine.rating;
-    if (wine.stockLevel !== undefined) updateData.stock_level = wine.stockLevel;
-    if (wine.vintageStocks !== undefined) updateData.vintage_stocks = Array.isArray(wine.vintageStocks) ? wine.vintageStocks : [];
-
-    const [updatedWine] = await db
-      .update(wines)
-      .set(wine)
-      .where(and(eq(wines.id, id), eq(wines.userId, userId)))
-      .returning();
-    return updatedWine;
+    try {
+      const [updatedWine] = await db
+        .update(wines)
+        .set(wine)
+        .where(and(eq(wines.id, id), eq(wines.userId, userId)))
+        .returning();
+      return updatedWine;
+    } catch (error) {
+      console.error('Error updating wine:', error);
+      throw error;
+    }
   }
 
   async deleteWine(id: number, userId: string): Promise<boolean> {
@@ -162,76 +154,7 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async loadWineCatalogFromCSV(filePath: string): Promise<void> {
-    try {
-      // Check if file exists first
-      if (!fs.existsSync(filePath)) {
-        console.warn(`Wine catalog CSV file not found at ${filePath}. Skipping catalog load.`);
-        return;
-      }
-
-      console.log(`Loading wine catalog from ${filePath}...`);
-
-      const records: any[] = [];
-
-      await new Promise<void>((resolve, reject) => {
-        createReadStream(filePath)
-          .pipe(parse({ 
-            columns: true, 
-            skip_empty_lines: true,
-            delimiter: ',',
-            quote: '"',
-            escape: '"'
-          }))
-          .on('data', (record) => {
-            records.push(record);
-          })
-          .on('end', () => {
-            resolve();
-          })
-          .on('error', (err) => {
-            reject(err);
-          });
-      });
-
-      // Check if catalog already has data to avoid overwriting
-      const existingEntries = await db.select().from(wineCatalog).limit(1);
-      if (existingEntries.length > 0) {
-        console.log("Wine catalog already has data, skipping CSV load to preserve existing entries");
-        return;
-      }
-
-      // Clear existing catalog only if we're sure we want to reload
-      await db.delete(wineCatalog);
-
-      // Prepare data for insertion
-      const catalogEntries = records
-        .filter(record => record.NAME && record.CATEGORY)
-        .map(record => ({
-          name: record.NAME,
-          category: record.CATEGORY,
-          wine: record.WINE || null,
-          subType: record.SUBTYPE || null,
-          producer: record.PRODUCER || null,
-          region: record.REGION || null,
-          country: record.COUNTRY || null,
-        }));
-
-      // Insert in batches to avoid potential memory issues
-      if (catalogEntries.length > 0) {
-        const batchSize = 1000;
-        for (let i = 0; i < catalogEntries.length; i += batchSize) {
-          const batch = catalogEntries.slice(i, i + batchSize);
-          await db.insert(wineCatalog).values(batch);
-        }
-      }
-
-      console.log(`Successfully loaded ${catalogEntries.length} wine entries into catalog`);
-    } catch (error) {
-      console.error('Error loading wine catalog from CSV:', error);
-      // Don't throw the error - this shouldn't prevent the app from starting
-    }
-  }
+  
 }
 
 export const storage = new DatabaseStorage();

@@ -159,29 +159,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Admin route - Manually import wine catalog from CSV
-  // This route is protected with an API key to prevent unauthorized access
-  app.post("/api/admin/catalog/import", async (req, res) => {
-    try {
-      // Check for admin API key in request header
-      const apiKey = req.headers['x-api-key'];
-      if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
-        return res.status(401).json({ message: "Unauthorized - Invalid API key" });
-      }
-      
-      // Path to the CSV file
-      const csvFilePath = path.join(process.cwd(), 'server/data/winedb2.csv');
-      
-      // Manually trigger the import
-      await storage.loadWineCatalogFromCSV(csvFilePath);
-      
-      res.json({ message: "Wine catalog import completed successfully" });
-    } catch (err) {
-      console.error("Failed to import wine catalog:", err);
-      res.status(500).json({ message: "Failed to import wine catalog" });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }
