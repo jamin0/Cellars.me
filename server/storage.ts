@@ -1,30 +1,38 @@
 import { 
   wines, 
   wineCatalog, 
+  users,
   type Wine, 
   type InsertWine, 
   type WineCatalog, 
   type InsertWineCatalog,
-  type VintageStock
+  type VintageStock,
+  type User,
+  type UpsertUser
 } from "@shared/schema";
 import fs from 'fs';
 import { createReadStream } from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse';
 import { db } from './db';
-import { eq, or, sql } from 'drizzle-orm';
+import { eq, or, sql, and, ilike } from 'drizzle-orm';
 
-// Modify the interface with needed CRUD methods
+// Interface for storage operations
 export interface IStorage {
-  // Wine inventory management
-  getWines(): Promise<Wine[]>;
-  getWineById(id: number): Promise<Wine | undefined>;
-  getWinesByCategory(category: string): Promise<Wine[]>;
-  addWine(wine: InsertWine): Promise<Wine>;
-  updateWine(id: number, wine: Partial<InsertWine>): Promise<Wine | undefined>;
-  deleteWine(id: number): Promise<boolean>;
+  // User operations
+  // (IMPORTANT) these user operations are mandatory for Replit Auth.
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+
+  // Wine inventory management (user-specific)
+  getWines(userId: string): Promise<Wine[]>;
+  getWineById(id: number, userId: string): Promise<Wine | undefined>;
+  getWinesByCategory(category: string, userId: string): Promise<Wine[]>;
+  addWine(wine: InsertWine, userId: string): Promise<Wine>;
+  updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined>;
+  deleteWine(id: number, userId: string): Promise<boolean>;
   
-  // Wine catalog management (from CSV)
+  // Wine catalog management (from CSV) - shared across all users
   getWineCatalog(): Promise<WineCatalog[]>;
   searchWineCatalog(query: string): Promise<WineCatalog[]>;
   loadWineCatalogFromCSV(filePath: string): Promise<void>;

@@ -1,4 +1,14 @@
-import { pgTable, text, serial, integer, json } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  jsonb,
+  index,
+  serial,
+  integer,
+  json,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,15 +26,43 @@ export const WineCategory = {
 
 export type WineCategoryType = typeof WineCategory[keyof typeof WineCategory];
 
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+
 // Vintage with stock level
 export interface VintageStock {
   vintage: number;
   stock: number;
 }
 
-// Wine schema
+// Wine schema - now linked to users
 export const wines = pgTable("wines", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   category: text("category").notNull(),
   wine: text("wine"), // The specific wine name/type
@@ -37,7 +75,7 @@ export const wines = pgTable("wines", {
   imageUrl: text("image_url"),
   rating: integer("rating"), // Rating from 1-5
   notes: text("notes"), // User's personal tasting notes
-  createdAt: text("created_at").default(new Date().toISOString()),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Wine database catalog entry (from CSV)
@@ -55,6 +93,7 @@ export const wineCatalog = pgTable("wine_catalog", {
 // Schemas for input validation
 export const insertWineSchema = createInsertSchema(wines).omit({
   id: true,
+  userId: true,
   createdAt: true,
 }).extend({
   notes: z.string().nullable().optional(),
@@ -66,10 +105,7 @@ export const insertWineCatalogSchema = createInsertSchema(wineCatalog).omit({
 });
 
 // Types for usage throughout the app
-export type Wine = typeof wines.$inferSelect & {
-  // Include description field for backward compatibility
-  description?: string | null;
-};
+export type Wine = typeof wines.$inferSelect;
 export type InsertWine = z.infer<typeof insertWineSchema>;
 export type WineCatalog = typeof wineCatalog.$inferSelect;
 export type InsertWineCatalog = z.infer<typeof insertWineCatalogSchema>;
