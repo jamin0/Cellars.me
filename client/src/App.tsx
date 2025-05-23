@@ -18,7 +18,7 @@ function Router() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Opening the cellar door...</div>
       </div>
     );
   }
@@ -48,7 +48,7 @@ function App() {
       <ThemeProvider>
         <TooltipProvider>
           <Toaster />
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<div>Opening the cellar door...</div>}>
             <Router />
           </Suspense>
         </TooltipProvider>

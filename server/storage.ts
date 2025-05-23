@@ -42,9 +42,8 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     console.log("DatabaseStorage initialized with database connection");
     
-    // Try to load the wine catalog from CSV on initialization
-    this.loadWineCatalogFromCSV(path.join(process.cwd(), 'server/data/winedb2.csv'))
-      .catch(err => console.error('Failed to load wine catalog:', err));
+    // Note: Wine catalog loading is now done manually via API endpoint
+    // to prevent overwriting existing data on startup
   }
 
   // User operations
@@ -159,7 +158,14 @@ export class DatabaseStorage implements IStorage {
           });
       });
 
-      // Clear existing catalog
+      // Check if catalog already has data to avoid overwriting
+      const existingEntries = await db.select().from(wineCatalog).limit(1);
+      if (existingEntries.length > 0) {
+        console.log("Wine catalog already has data, skipping CSV load to preserve existing entries");
+        return;
+      }
+
+      // Clear existing catalog only if we're sure we want to reload
       await db.delete(wineCatalog);
 
       // Prepare data for insertion

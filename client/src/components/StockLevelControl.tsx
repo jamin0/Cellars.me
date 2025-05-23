@@ -14,7 +14,7 @@ export default function StockLevelControl({
   value,
   onChange,
   min = 0,
-  max = 9999,
+  max = 999,
   disabled = false
 }: StockLevelControlProps) {
   const handleIncrement = () => {

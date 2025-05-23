@@ -208,7 +208,7 @@ export default function WineFormFields({ form }: WineFormFieldsProps) {
               />
             </FormControl>
             <FormDescription>
-              Rate this wine from 1 (poor) to 5 (excellent)
+              Rate this from 1 (poor) to 5 (excellent)
             </FormDescription>
             <FormMessage />
           </FormItem>
