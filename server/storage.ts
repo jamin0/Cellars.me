@@ -31,7 +31,7 @@ export interface IStorage {
   addWine(wine: InsertWine, userId: string): Promise<Wine>;
   updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined>;
   deleteWine(id: number, userId: string): Promise<boolean>;
-
+  
   // Wine catalog management (from CSV) - shared across all users
   getWineCatalog(): Promise<WineCatalog[]>;
   searchWineCatalog(query: string): Promise<WineCatalog[]>;
@@ -41,7 +41,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   constructor() {
     console.log("DatabaseStorage initialized with database connection");
-
+    
     // Note: Wine catalog loading is now done manually via API endpoint
     // to prevent overwriting existing data on startup
   }
@@ -90,25 +90,10 @@ export class DatabaseStorage implements IStorage {
     return newWine;
   }
 
-  async updateWine(id: number, userId: string, wine: Partial<InsertWine>): Promise<Wine | undefined> {
-    const updateData: Record<string, any> = {};
-
-    // Map fields to columns with correct snake_case for DB
-    if (wine.name !== undefined) updateData.name = wine.name;
-    if (wine.category !== undefined) updateData.category = wine.category;
-    if (wine.wine !== undefined) updateData.wine = wine.wine;
-    if (wine.subType !== undefined) updateData.sub_type = wine.subType;
-    if (wine.producer !== undefined) updateData.producer = wine.producer;
-    if (wine.region !== undefined) updateData.region = wine.region;
-    if (wine.country !== undefined) updateData.country = wine.country;
-    if (wine.notes !== undefined) updateData.notes = wine.notes;
-    if (wine.rating !== undefined) updateData.rating = wine.rating;
-    if (wine.stockLevel !== undefined) updateData.stock_level = wine.stockLevel;
-    if (wine.vintageStocks !== undefined) updateData.vintage_stocks = Array.isArray(wine.vintageStocks) ? wine.vintageStocks : [];
-
+  async updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined> {
     const [updatedWine] = await db
       .update(wines)
-      .set(updateData)
+      .set(wine)
       .where(and(eq(wines.id, id), eq(wines.userId, userId)))
       .returning();
     return updatedWine;
@@ -150,9 +135,9 @@ export class DatabaseStorage implements IStorage {
       }
 
       console.log(`Loading wine catalog from ${filePath}...`);
-
+      
       const records: any[] = [];
-
+      
       await new Promise<void>((resolve, reject) => {
         createReadStream(filePath)
           .pipe(parse({ 
