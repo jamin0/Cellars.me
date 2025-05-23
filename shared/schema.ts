@@ -21,6 +21,8 @@ export const WineCategory = {
   BEER: "Beer",
   CIDER: "Cider",
   WHISKIES: "Whiskies",
+  WHISKY: "Whisky",
+  SPIRITS: "Spirits",
   OTHER: "Other"
 } as const;
 

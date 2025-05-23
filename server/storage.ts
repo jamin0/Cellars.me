@@ -83,14 +83,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addWine(wine: InsertWine, userId: string): Promise<Wine> {
-    const [newWine] = await db
-      .insert(wines)
-      .values({ ...wine, userId })
-      .returning();
-    return newWine;
+    try {
+      const wineData = {
+        name: wine.name,
+        category: wine.category,
+        wine: wine.wine || null,
+        subType: wine.subType || null,
+        producer: wine.producer || null,
+        region: wine.region || null,
+        country: wine.country || null,
+        stockLevel: wine.stockLevel || 0,
+        vintageStocks: wine.vintageStocks || [],
+        imageUrl: wine.imageUrl || null,
+        rating: wine.rating || null,
+        notes: wine.notes || null,
+        userId
+      };
+      
+      const [newWine] = await db
+        .insert(wines)
+        .values([wineData])
+        .returning();
+      return newWine;
+    } catch (error) {
+      console.error('Error adding wine:', error);
+      throw error;
+    }
   }
 
-  async updateWine(id: number, userId: string, wine: Partial<InsertWine>): Promise<Wine | undefined> {
+  async updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined> {
     const updateData: Record<string, any> = {};
 
     // Map fields to columns with correct snake_case for DB
@@ -108,7 +129,7 @@ export class DatabaseStorage implements IStorage {
 
     const [updatedWine] = await db
       .update(wines)
-      .set(updateData)
+      .set(wine)
       .where(and(eq(wines.id, id), eq(wines.userId, userId)))
       .returning();
     return updatedWine;
