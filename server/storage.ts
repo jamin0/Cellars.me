@@ -114,65 +114,79 @@ export class DatabaseStorage implements IStorage {
 
   async updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined> {
     try {
-      console.log('Updating wine ID:', id);
-      console.log('Wine data received:', wine);
+      console.log('=== UPDATE WINE START ===');
+      console.log('Wine ID:', id);
       console.log('User ID:', userId);
+      console.log('Wine data:', JSON.stringify(wine, null, 2));
       
-      // First, get the current wine to merge with updates
-      const [currentWine] = await db
-        .select()
-        .from(wines)
-        .where(and(eq(wines.id, id), eq(wines.userId, userId)));
+      // Use direct SQL update which we know works
+      let updateParts: string[] = [];
+      let params: any[] = [];
+      let paramIndex = 1;
       
-      if (!currentWine) {
-        return undefined;
+      if (wine.name !== undefined) {
+        updateParts.push(`name = $${paramIndex++}`);
+        params.push(wine.name);
       }
-
-      // Delete the existing wine
-      await db.delete(wines).where(and(eq(wines.id, id), eq(wines.userId, userId)));
-
-      // Create the updated wine data
-      const updatedWineData = {
-        id: id,
-        name: wine.name ?? currentWine.name,
-        category: wine.category ?? currentWine.category,
-        wine: wine.wine !== undefined ? wine.wine : currentWine.wine,
-        subType: wine.subType !== undefined ? wine.subType : currentWine.subType,
-        producer: wine.producer !== undefined ? wine.producer : currentWine.producer,
-        region: wine.region !== undefined ? wine.region : currentWine.region,
-        country: wine.country !== undefined ? wine.country : currentWine.country,
-        stockLevel: wine.stockLevel ?? currentWine.stockLevel,
-        vintageStocks: wine.vintageStocks ?? currentWine.vintageStocks,
-        imageUrl: wine.imageUrl !== undefined ? wine.imageUrl : currentWine.imageUrl,
-        rating: wine.rating !== undefined ? wine.rating : currentWine.rating,
-        notes: wine.notes !== undefined ? wine.notes : currentWine.notes,
-        userId: userId,
-        createdAt: currentWine.createdAt
-      };
-
-      // Insert the updated wine with explicit field mapping
-      const result = await db.execute(sql`
-        INSERT INTO wines (
-          id, name, category, wine, sub_type, producer, region, country,
-          stock_level, vintage_stocks, image_url, rating, notes, user_id, created_at
-        ) VALUES (
-          ${updatedWineData.id},
-          ${updatedWineData.name},
-          ${updatedWineData.category},
-          ${updatedWineData.wine},
-          ${updatedWineData.subType},
-          ${updatedWineData.producer},
-          ${updatedWineData.region},
-          ${updatedWineData.country},
-          ${updatedWineData.stockLevel},
-          ${JSON.stringify(updatedWineData.vintageStocks)}::json,
-          ${updatedWineData.imageUrl},
-          ${updatedWineData.rating},
-          ${updatedWineData.notes},
-          ${updatedWineData.userId},
-          ${updatedWineData.createdAt}
-        ) RETURNING *
-      `);
+      if (wine.category !== undefined) {
+        updateParts.push(`category = $${paramIndex++}`);
+        params.push(wine.category);
+      }
+      if (wine.wine !== undefined) {
+        updateParts.push(`wine = $${paramIndex++}`);
+        params.push(wine.wine);
+      }
+      if (wine.subType !== undefined) {
+        updateParts.push(`sub_type = $${paramIndex++}`);
+        params.push(wine.subType);
+      }
+      if (wine.producer !== undefined) {
+        updateParts.push(`producer = $${paramIndex++}`);
+        params.push(wine.producer);
+      }
+      if (wine.region !== undefined) {
+        updateParts.push(`region = $${paramIndex++}`);
+        params.push(wine.region);
+      }
+      if (wine.country !== undefined) {
+        updateParts.push(`country = $${paramIndex++}`);
+        params.push(wine.country);
+      }
+      if (wine.stockLevel !== undefined) {
+        updateParts.push(`stock_level = $${paramIndex++}`);
+        params.push(wine.stockLevel);
+      }
+      if (wine.vintageStocks !== undefined) {
+        updateParts.push(`vintage_stocks = $${paramIndex++}::json`);
+        params.push(JSON.stringify(wine.vintageStocks));
+      }
+      if (wine.imageUrl !== undefined) {
+        updateParts.push(`image_url = $${paramIndex++}`);
+        params.push(wine.imageUrl);
+      }
+      if (wine.rating !== undefined) {
+        updateParts.push(`rating = $${paramIndex++}`);
+        params.push(wine.rating);
+      }
+      if (wine.notes !== undefined) {
+        updateParts.push(`notes = $${paramIndex++}`);
+        params.push(wine.notes);
+      }
+      
+      if (updateParts.length === 0) {
+        console.log('No fields to update');
+        const result = await pool.query('SELECT * FROM wines WHERE id = $1 AND user_id = $2', [id, userId]);
+        return result.rows[0] as Wine;
+      }
+      
+      params.push(id, userId);
+      const query = `UPDATE wines SET ${updateParts.join(', ')} WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} RETURNING *`;
+      
+      console.log('Executing query:', query);
+      console.log('With params:', params);
+      
+      const result = await pool.query(query, params);
+      console.log('Update result:', result.rows[0]);
       
       return result.rows[0] as Wine;
     } catch (error) {
