@@ -113,27 +113,27 @@ export class DatabaseStorage implements IStorage {
 
   async updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined> {
     try {
-      // Create update object with only defined fields
-      const updateData: any = {};
-      if (wine.name !== undefined) updateData.name = wine.name;
-      if (wine.category !== undefined) updateData.category = wine.category;
-      if (wine.wine !== undefined) updateData.wine = wine.wine;
-      if (wine.subType !== undefined) updateData.subType = wine.subType;
-      if (wine.producer !== undefined) updateData.producer = wine.producer;
-      if (wine.region !== undefined) updateData.region = wine.region;
-      if (wine.country !== undefined) updateData.country = wine.country;
-      if (wine.stockLevel !== undefined) updateData.stockLevel = wine.stockLevel;
-      if (wine.vintageStocks !== undefined) updateData.vintageStocks = wine.vintageStocks;
-      if (wine.imageUrl !== undefined) updateData.imageUrl = wine.imageUrl;
-      if (wine.rating !== undefined) updateData.rating = wine.rating;
-      if (wine.notes !== undefined) updateData.notes = wine.notes;
-
-      const [updatedWine] = await db
-        .update(wines)
-        .set(updateData)
-        .where(and(eq(wines.id, id), eq(wines.userId, userId)))
-        .returning();
-      return updatedWine;
+      // Use direct SQL to avoid type issues with partial updates
+      const result = await db.execute(sql`
+        UPDATE wines 
+        SET 
+          name = COALESCE(${wine.name}, name),
+          category = COALESCE(${wine.category}, category),
+          wine = COALESCE(${wine.wine}, wine),
+          sub_type = COALESCE(${wine.subType}, sub_type),
+          producer = COALESCE(${wine.producer}, producer),
+          region = COALESCE(${wine.region}, region),
+          country = COALESCE(${wine.country}, country),
+          stock_level = COALESCE(${wine.stockLevel}, stock_level),
+          vintage_stocks = COALESCE(${JSON.stringify(wine.vintageStocks)}::json, vintage_stocks),
+          image_url = COALESCE(${wine.imageUrl}, image_url),
+          rating = COALESCE(${wine.rating}, rating),
+          notes = COALESCE(${wine.notes}, notes)
+        WHERE id = ${id} AND user_id = ${userId}
+        RETURNING *
+      `);
+      
+      return result.rows[0] as Wine;
     } catch (error) {
       console.error('Error updating wine:', error);
       throw error;
