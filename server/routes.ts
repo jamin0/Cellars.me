@@ -106,9 +106,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = req.user.claims.sub;
-      console.log('Update request body:', req.body);
-      console.log('Parsed wine data:', parseResult.data);
+      console.log('=== DEBUG WINE UPDATE ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('Parse result success:', parseResult.success);
+      console.log('Parsed data:', JSON.stringify(parseResult.data, null, 2));
+      console.log('Wine ID:', id);
       console.log('User ID:', userId);
+      console.log('========================');
       const updatedWine = await storage.updateWine(id, parseResult.data, userId);
       if (!updatedWine) {
         return res.status(404).json({ message: "Wine not found" });
