@@ -114,7 +114,9 @@ export class DatabaseStorage implements IStorage {
 
   async updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined> {
     try {
-      console.log('Updating wine with data:', wine);
+      console.log('Updating wine ID:', id);
+      console.log('Wine data received:', wine);
+      console.log('User ID:', userId);
       
       // First, get the current wine to merge with updates
       const [currentWine] = await db
