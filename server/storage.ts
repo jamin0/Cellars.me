@@ -15,6 +15,7 @@ import { createReadStream } from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse';
 import { db } from './db';
+import { pool } from './db';
 import { eq, or, sql, and, ilike } from 'drizzle-orm';
 
 // Interface for storage operations
@@ -115,45 +116,60 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Updating wine with data:', wine);
       
-      // Get current wine first
-      const currentResult = await db.execute(sql`SELECT * FROM wines WHERE id = ${id} AND user_id = ${userId}`);
-      const currentWine = currentResult.rows[0] as Wine;
+      // First, get the current wine to merge with updates
+      const [currentWine] = await db
+        .select()
+        .from(wines)
+        .where(and(eq(wines.id, id), eq(wines.userId, userId)));
       
       if (!currentWine) {
         return undefined;
       }
-      
-      // Build update query with direct value substitution
-      const name = wine.name !== undefined ? wine.name : currentWine.name;
-      const category = wine.category !== undefined ? wine.category : currentWine.category;
-      const wineValue = wine.wine !== undefined ? wine.wine : currentWine.wine;
-      const subType = wine.subType !== undefined ? wine.subType : currentWine.subType;
-      const producer = wine.producer !== undefined ? wine.producer : currentWine.producer;
-      const region = wine.region !== undefined ? wine.region : currentWine.region;
-      const country = wine.country !== undefined ? wine.country : currentWine.country;
-      const stockLevel = wine.stockLevel !== undefined ? wine.stockLevel : currentWine.stockLevel;
-      const vintageStocks = wine.vintageStocks !== undefined ? JSON.stringify(wine.vintageStocks) : JSON.stringify(currentWine.vintageStocks);
-      const imageUrl = wine.imageUrl !== undefined ? wine.imageUrl : currentWine.imageUrl;
-      const rating = wine.rating !== undefined ? wine.rating : currentWine.rating;
-      const notes = wine.notes !== undefined ? wine.notes : currentWine.notes;
-      
+
+      // Delete the existing wine
+      await db.delete(wines).where(and(eq(wines.id, id), eq(wines.userId, userId)));
+
+      // Create the updated wine data
+      const updatedWineData = {
+        id: id,
+        name: wine.name ?? currentWine.name,
+        category: wine.category ?? currentWine.category,
+        wine: wine.wine !== undefined ? wine.wine : currentWine.wine,
+        subType: wine.subType !== undefined ? wine.subType : currentWine.subType,
+        producer: wine.producer !== undefined ? wine.producer : currentWine.producer,
+        region: wine.region !== undefined ? wine.region : currentWine.region,
+        country: wine.country !== undefined ? wine.country : currentWine.country,
+        stockLevel: wine.stockLevel ?? currentWine.stockLevel,
+        vintageStocks: wine.vintageStocks ?? currentWine.vintageStocks,
+        imageUrl: wine.imageUrl !== undefined ? wine.imageUrl : currentWine.imageUrl,
+        rating: wine.rating !== undefined ? wine.rating : currentWine.rating,
+        notes: wine.notes !== undefined ? wine.notes : currentWine.notes,
+        userId: userId,
+        createdAt: currentWine.createdAt
+      };
+
+      // Insert the updated wine with explicit field mapping
       const result = await db.execute(sql`
-        UPDATE wines 
-        SET 
-          name = ${name},
-          category = ${category},
-          wine = ${wineValue},
-          sub_type = ${subType},
-          producer = ${producer},
-          region = ${region},
-          country = ${country},
-          stock_level = ${stockLevel},
-          vintage_stocks = ${vintageStocks}::json,
-          image_url = ${imageUrl},
-          rating = ${rating},
-          notes = ${notes}
-        WHERE id = ${id} AND user_id = ${userId}
-        RETURNING *
+        INSERT INTO wines (
+          id, name, category, wine, sub_type, producer, region, country,
+          stock_level, vintage_stocks, image_url, rating, notes, user_id, created_at
+        ) VALUES (
+          ${updatedWineData.id},
+          ${updatedWineData.name},
+          ${updatedWineData.category},
+          ${updatedWineData.wine},
+          ${updatedWineData.subType},
+          ${updatedWineData.producer},
+          ${updatedWineData.region},
+          ${updatedWineData.country},
+          ${updatedWineData.stockLevel},
+          ${JSON.stringify(updatedWineData.vintageStocks)}::json,
+          ${updatedWineData.imageUrl},
+          ${updatedWineData.rating},
+          ${updatedWineData.notes},
+          ${updatedWineData.userId},
+          ${updatedWineData.createdAt}
+        ) RETURNING *
       `);
       
       return result.rows[0] as Wine;
