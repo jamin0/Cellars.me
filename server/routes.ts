@@ -89,6 +89,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update an existing wine for authenticated user
   app.patch("/api/wines/:id", isAuthenticated, async (req: any, res) => {
     try {
+      console.log('=== WINE UPDATE ROUTE START ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('Request params:', req.params);
+      
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid wine ID" });
