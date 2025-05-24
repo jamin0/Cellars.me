@@ -113,9 +113,24 @@ export class DatabaseStorage implements IStorage {
 
   async updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined> {
     try {
+      // Create update object with only defined fields
+      const updateData: any = {};
+      if (wine.name !== undefined) updateData.name = wine.name;
+      if (wine.category !== undefined) updateData.category = wine.category;
+      if (wine.wine !== undefined) updateData.wine = wine.wine;
+      if (wine.subType !== undefined) updateData.subType = wine.subType;
+      if (wine.producer !== undefined) updateData.producer = wine.producer;
+      if (wine.region !== undefined) updateData.region = wine.region;
+      if (wine.country !== undefined) updateData.country = wine.country;
+      if (wine.stockLevel !== undefined) updateData.stockLevel = wine.stockLevel;
+      if (wine.vintageStocks !== undefined) updateData.vintageStocks = wine.vintageStocks;
+      if (wine.imageUrl !== undefined) updateData.imageUrl = wine.imageUrl;
+      if (wine.rating !== undefined) updateData.rating = wine.rating;
+      if (wine.notes !== undefined) updateData.notes = wine.notes;
+
       const [updatedWine] = await db
         .update(wines)
-        .set(wine)
+        .set(updateData)
         .where(and(eq(wines.id, id), eq(wines.userId, userId)))
         .returning();
       return updatedWine;
