@@ -115,71 +115,46 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Updating wine with data:', wine);
       
-      // Build dynamic SQL update based on provided fields
-      const updates: string[] = [];
-      const values: any[] = [];
-      let paramCount = 1;
+      // Get current wine first
+      const currentResult = await db.execute(sql`SELECT * FROM wines WHERE id = ${id} AND user_id = ${userId}`);
+      const currentWine = currentResult.rows[0] as Wine;
       
-      if (wine.name !== undefined) {
-        updates.push(`name = $${paramCount++}`);
-        values.push(wine.name);
-      }
-      if (wine.category !== undefined) {
-        updates.push(`category = $${paramCount++}`);
-        values.push(wine.category);
-      }
-      if (wine.wine !== undefined) {
-        updates.push(`wine = $${paramCount++}`);
-        values.push(wine.wine);
-      }
-      if (wine.subType !== undefined) {
-        updates.push(`sub_type = $${paramCount++}`);
-        values.push(wine.subType);
-      }
-      if (wine.producer !== undefined) {
-        updates.push(`producer = $${paramCount++}`);
-        values.push(wine.producer);
-      }
-      if (wine.region !== undefined) {
-        updates.push(`region = $${paramCount++}`);
-        values.push(wine.region);
-      }
-      if (wine.country !== undefined) {
-        updates.push(`country = $${paramCount++}`);
-        values.push(wine.country);
-      }
-      if (wine.stockLevel !== undefined) {
-        updates.push(`stock_level = $${paramCount++}`);
-        values.push(wine.stockLevel);
-      }
-      if (wine.vintageStocks !== undefined) {
-        updates.push(`vintage_stocks = $${paramCount++}::json`);
-        values.push(JSON.stringify(wine.vintageStocks));
-      }
-      if (wine.imageUrl !== undefined) {
-        updates.push(`image_url = $${paramCount++}`);
-        values.push(wine.imageUrl);
-      }
-      if (wine.rating !== undefined) {
-        updates.push(`rating = $${paramCount++}`);
-        values.push(wine.rating);
-      }
-      if (wine.notes !== undefined) {
-        updates.push(`notes = $${paramCount++}`);
-        values.push(wine.notes);
+      if (!currentWine) {
+        return undefined;
       }
       
-      if (updates.length === 0) {
-        // No updates provided, return current wine
-        const result = await db.execute(sql.raw(`SELECT * FROM wines WHERE id = $1 AND user_id = $2`, [id, userId]));
-        return result.rows[0] as Wine;
-      }
+      // Build update query with direct value substitution
+      const name = wine.name !== undefined ? wine.name : currentWine.name;
+      const category = wine.category !== undefined ? wine.category : currentWine.category;
+      const wineValue = wine.wine !== undefined ? wine.wine : currentWine.wine;
+      const subType = wine.subType !== undefined ? wine.subType : currentWine.subType;
+      const producer = wine.producer !== undefined ? wine.producer : currentWine.producer;
+      const region = wine.region !== undefined ? wine.region : currentWine.region;
+      const country = wine.country !== undefined ? wine.country : currentWine.country;
+      const stockLevel = wine.stockLevel !== undefined ? wine.stockLevel : currentWine.stockLevel;
+      const vintageStocks = wine.vintageStocks !== undefined ? JSON.stringify(wine.vintageStocks) : JSON.stringify(currentWine.vintageStocks);
+      const imageUrl = wine.imageUrl !== undefined ? wine.imageUrl : currentWine.imageUrl;
+      const rating = wine.rating !== undefined ? wine.rating : currentWine.rating;
+      const notes = wine.notes !== undefined ? wine.notes : currentWine.notes;
       
-      // Add WHERE clause parameters
-      values.push(id, userId);
-      
-      const query = `UPDATE wines SET ${updates.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING *`;
-      const result = await db.execute(sql.raw(query, values));
+      const result = await db.execute(sql`
+        UPDATE wines 
+        SET 
+          name = ${name},
+          category = ${category},
+          wine = ${wineValue},
+          sub_type = ${subType},
+          producer = ${producer},
+          region = ${region},
+          country = ${country},
+          stock_level = ${stockLevel},
+          vintage_stocks = ${vintageStocks}::json,
+          image_url = ${imageUrl},
+          rating = ${rating},
+          notes = ${notes}
+        WHERE id = ${id} AND user_id = ${userId}
+        RETURNING *
+      `);
       
       return result.rows[0] as Wine;
     } catch (error) {
