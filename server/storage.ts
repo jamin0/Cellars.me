@@ -113,25 +113,73 @@ export class DatabaseStorage implements IStorage {
 
   async updateWine(id: number, wine: Partial<InsertWine>, userId: string): Promise<Wine | undefined> {
     try {
-      // Use direct SQL to avoid type issues with partial updates
-      const result = await db.execute(sql`
-        UPDATE wines 
-        SET 
-          name = COALESCE(${wine.name}, name),
-          category = COALESCE(${wine.category}, category),
-          wine = COALESCE(${wine.wine}, wine),
-          sub_type = COALESCE(${wine.subType}, sub_type),
-          producer = COALESCE(${wine.producer}, producer),
-          region = COALESCE(${wine.region}, region),
-          country = COALESCE(${wine.country}, country),
-          stock_level = COALESCE(${wine.stockLevel}, stock_level),
-          vintage_stocks = COALESCE(${JSON.stringify(wine.vintageStocks)}::json, vintage_stocks),
-          image_url = COALESCE(${wine.imageUrl}, image_url),
-          rating = COALESCE(${wine.rating}, rating),
-          notes = COALESCE(${wine.notes}, notes)
-        WHERE id = ${id} AND user_id = ${userId}
-        RETURNING *
-      `);
+      console.log('Updating wine with data:', wine);
+      
+      // Build dynamic SQL update based on provided fields
+      const updates: string[] = [];
+      const values: any[] = [];
+      let paramCount = 1;
+      
+      if (wine.name !== undefined) {
+        updates.push(`name = $${paramCount++}`);
+        values.push(wine.name);
+      }
+      if (wine.category !== undefined) {
+        updates.push(`category = $${paramCount++}`);
+        values.push(wine.category);
+      }
+      if (wine.wine !== undefined) {
+        updates.push(`wine = $${paramCount++}`);
+        values.push(wine.wine);
+      }
+      if (wine.subType !== undefined) {
+        updates.push(`sub_type = $${paramCount++}`);
+        values.push(wine.subType);
+      }
+      if (wine.producer !== undefined) {
+        updates.push(`producer = $${paramCount++}`);
+        values.push(wine.producer);
+      }
+      if (wine.region !== undefined) {
+        updates.push(`region = $${paramCount++}`);
+        values.push(wine.region);
+      }
+      if (wine.country !== undefined) {
+        updates.push(`country = $${paramCount++}`);
+        values.push(wine.country);
+      }
+      if (wine.stockLevel !== undefined) {
+        updates.push(`stock_level = $${paramCount++}`);
+        values.push(wine.stockLevel);
+      }
+      if (wine.vintageStocks !== undefined) {
+        updates.push(`vintage_stocks = $${paramCount++}::json`);
+        values.push(JSON.stringify(wine.vintageStocks));
+      }
+      if (wine.imageUrl !== undefined) {
+        updates.push(`image_url = $${paramCount++}`);
+        values.push(wine.imageUrl);
+      }
+      if (wine.rating !== undefined) {
+        updates.push(`rating = $${paramCount++}`);
+        values.push(wine.rating);
+      }
+      if (wine.notes !== undefined) {
+        updates.push(`notes = $${paramCount++}`);
+        values.push(wine.notes);
+      }
+      
+      if (updates.length === 0) {
+        // No updates provided, return current wine
+        const result = await db.execute(sql.raw(`SELECT * FROM wines WHERE id = $1 AND user_id = $2`, [id, userId]));
+        return result.rows[0] as Wine;
+      }
+      
+      // Add WHERE clause parameters
+      values.push(id, userId);
+      
+      const query = `UPDATE wines SET ${updates.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING *`;
+      const result = await db.execute(sql.raw(query, values));
       
       return result.rows[0] as Wine;
     } catch (error) {
